@@ -1,5 +1,5 @@
-from sqlalchemy import Column, Integer, String
-from sqlalchemy.orm import declarative_base
+from sqlalchemy import Column, Integer, String, ForeignKey
+from sqlalchemy.orm import relationship, declarative_base
 
 Base = declarative_base()
 
@@ -8,5 +8,10 @@ class JobBoard(Base):
   id = Column(Integer, primary_key=True)
   slug = Column(String, nullable=False, unique=True)
 
-
-  
+class JobPost(Base):
+  __tablename__ = 'job_posts'
+  id = Column(Integer, primary_key=True)
+  title = Column(String, nullable=False)
+  description = Column(String, nullable=False)
+  job_board_id = Column(Integer, ForeignKey("job_boards.id"),  nullable=False)
+  job_board = relationship("JobBoard")
