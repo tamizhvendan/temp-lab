@@ -1,4 +1,6 @@
+import os
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 from db import get_db_session
@@ -15,13 +17,14 @@ async def health():
     print(e)
     return {"database": "down"}
 
-@app.get("/")
-async def root():
-  return {"hello": "world"}
+
 
 
 app.mount("/app", StaticFiles(directory="frontend/dist"))
-
+@app.get("/")
+async def root():
+  indexFilePath = os.path.join("frontend", "dist", "index.html")
+  return FileResponse(path=indexFilePath, media_type="text/html")
 
 jobBoards = {
     "acme": [
