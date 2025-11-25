@@ -26,7 +26,7 @@ export default function EditJobBoardForm({loaderData}: Route.ComponentProps) {
       <div className="flex">
         <Form method="post" encType="multipart/form-data" className="w-3/4">
           <FieldGroup>
-            <FieldLegend>Add New Job Board</FieldLegend>
+            <FieldLegend>Update Job Board</FieldLegend>
             <Field>
               <FieldLabel htmlFor="slug">
                 Slug

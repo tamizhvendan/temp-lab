@@ -38,7 +38,7 @@ async def api_job_boards():
 
 
 class JobBoardForm(BaseModel):
-   slug : str = Field(..., min_length=3, max_length=20)
+   slug : str = Field(..., min_length=2, max_length=20)
    logo: UploadFile = File(...)
 
 # @app.post("/api/job-boards")
@@ -73,9 +73,19 @@ async def api_get_company_job_board(job_board_id):
      if not jobBoard:
         raise HTTPException(status_code=404)
      return jobBoard
+
+@app.delete("/api/job-boards/{job_board_id}")
+async def api_get_company_job_board(job_board_id):
+  with get_db_session() as session:
+     jobBoard = session.get(JobBoard, job_board_id)
+     if not jobBoard:
+        raise HTTPException(status_code=404)
+     session.delete(jobBoard)
+     session.commit()
+     return jobBoard
   
 class JobBoardEditForm(BaseModel):
-   slug : str = Field(..., min_length=3, max_length=20)
+   slug : str = Field(..., min_length=2, max_length=20)
    logo: Optional[UploadFile] = None
 
 @app.put("/api/job-boards/{job_board_id}")
