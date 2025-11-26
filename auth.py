@@ -1,20 +1,28 @@
 import secrets
-from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPBasic, HTTPBasicCredentials
+
+from fastapi import Request
 from config import settings
+from starlette.middleware.base import BaseHTTPMiddleware
 
-security = HTTPBasic()
+admin_sessions = {}
 
-def authenticate_user(credentials: HTTPBasicCredentials = Depends(security)):
-    # In a real application, you'd verify against a database
-    correct_username = secrets.compare_digest(credentials.username, settings.ADMIN_USERNAME)
-    correct_password = secrets.compare_digest(credentials.password, settings.ADMIN_PASSWORD)
+def authenticate_admin(username, password):
+    correct_username = secrets.compare_digest(username, settings.ADMIN_USERNAME)
+    correct_password = secrets.compare_digest(password, settings.ADMIN_PASSWORD)
+    if correct_username and correct_password:
+        token = secrets.token_hex(16) 
+        admin_sessions[token] = True
+        return token
+    else:
+        return None
+    
+def is_admin(admin_session_token):
+    return admin_session_token in admin_sessions 
 
-    if not (correct_username and correct_password):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid credentials",
-            headers={"WWW-Authenticate": "Basic"},
-        )
-
-    return credentials.username
+class AdminAuthMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        admin_session_token = request.cookies.get("admin_session")
+        if is_admin(admin_session_token):
+            request.state.is_admin = True
+        response = await call_next(request)
+        return response

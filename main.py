@@ -1,17 +1,19 @@
 import os
 from typing import Annotated, Optional
-from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import Request, Response, status, FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, EmailStr, Field, field_validator
 from sqlalchemy import text
-from auth import authenticate_user
+from auth import AdminAuthMiddleware, authenticate_admin
 from db import get_db_session
 from file_storage import upload_file
 from models import JobApplication, JobBoard, JobPost
 from config import settings
 
 app = FastAPI()
+app.add_middleware(AdminAuthMiddleware)
+
 
 @app.get("/api/health")
 async def health():
@@ -22,6 +24,11 @@ async def health():
   except Exception as e:
     print(e)
     return {"database": "down"}
+
+
+@app.get("/api/me")
+async def me(req: Request):
+   return {"is_admin": hasattr(req.state, "is_admin")}
 
 @app.get("/api/job-boards")
 async def api_job_boards():
@@ -48,7 +55,7 @@ class JobBoardForm(BaseModel):
 #            "file": job_board_form.logo.filename}
 
 @app.post("/api/job-boards")
-async def api_create_new_job_board(job_board_form: Annotated[JobBoardForm, Form()], _: Annotated[str, Depends(authenticate_user)]):
+async def api_create_new_job_board(job_board_form: Annotated[JobBoardForm, Form()]):
    logo_contents = await job_board_form.logo.read()
    file_url = upload_file("company-logos", job_board_form.logo.filename, logo_contents, job_board_form.logo.content_type)
    with get_db_session() as session:
@@ -76,7 +83,7 @@ async def api_get_company_job_board(job_board_id):
      return jobBoard
 
 @app.delete("/api/job-boards/{job_board_id}")
-async def api_get_company_job_board(job_board_id, _: Annotated[str, Depends(authenticate_user)]):
+async def api_get_company_job_board(job_board_id):
   with get_db_session() as session:
      jobBoard = session.get(JobBoard, job_board_id)
      if not jobBoard:
@@ -90,7 +97,7 @@ class JobBoardEditForm(BaseModel):
    logo: Optional[UploadFile] = None
 
 @app.put("/api/job-boards/{job_board_id}")
-async def api_get_company_job_board(job_board_id, job_board_edit_form: Annotated[JobBoardEditForm, Form()], _: Annotated[str, Depends(authenticate_user)]):
+async def api_get_company_job_board(job_board_id, job_board_edit_form: Annotated[JobBoardEditForm, Form()]):
   with get_db_session() as session:
      jobBoard = session.get(JobBoard, job_board_id)
      if not jobBoard:
@@ -158,3 +165,18 @@ app.mount("/assets", StaticFiles(directory="frontend/build/client/assets"))
 async def catch_all(full_path: str):
   indexFilePath = os.path.join("frontend", "build", "client", "index.html")
   return FileResponse(path=indexFilePath, media_type="text/html")
+
+
+class AdminLoginForm(BaseModel):
+   username : str
+   password : str
+
+@app.post("/api/admin-login")
+async def admin_login(response: Response, admin_login_form: Annotated[AdminLoginForm, Form()]):
+   auth_response = authenticate_admin(admin_login_form.username, admin_login_form.password)
+   if auth_response is not None:
+      secure = settings.PRODUCTION
+      response.set_cookie(key="admin_session", value=auth_response, httponly=True, secure=secure, samesite="Lax")
+      return {}
+   else:
+      raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST)
