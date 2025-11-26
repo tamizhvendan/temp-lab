@@ -12,9 +12,9 @@ export async function clientLoader() {
 
 export async function clientAction({ request}: Route.ClientActionArgs) {
   const formData = await request.formData()
-  await fetch(`/api/job-boards/${formData.get('job_board_id')}`, {
+  const jobBoardId = formData.get('job_board_id')
+  await fetch(`/api/job-boards/${jobBoardId}`, {
     method: 'DELETE',
-    body: formData,
   })
 } 
 
@@ -48,10 +48,10 @@ export default function JobBoards({loaderData}) {
                 <TableCell><Link to={`/job-boards/${jobBoard.id}/job-posts`} className="capitalize">{jobBoard.slug}</Link></TableCell>
                 <TableCell className="flex space-x-2">
                   <Link to={`/job-boards/${jobBoard.id}/edit`}>Edit</Link>
-                  <fetcher.Form method="post"
+                  <fetcher.Form method="post" 
                     onSubmit={(event) => {
                       const response = confirm(
-                        "Please confirm you want to delete this record.",
+                        `Please confirm you want to delete this job board '${jobBoard.slug}'.`,
                       );
                       if (!response) {
                         event.preventDefault();
