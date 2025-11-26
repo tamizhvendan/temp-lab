@@ -1,10 +1,11 @@
 import os
 from typing import Annotated, Optional
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, EmailStr, Field, field_validator
 from sqlalchemy import text
+from auth import authenticate_user
 from db import get_db_session
 from file_storage import upload_file
 from models import JobApplication, JobBoard, JobPost
@@ -47,7 +48,7 @@ class JobBoardForm(BaseModel):
 #            "file": job_board_form.logo.filename}
 
 @app.post("/api/job-boards")
-async def api_create_new_job_board(job_board_form: Annotated[JobBoardForm, Form()]):
+async def api_create_new_job_board(job_board_form: Annotated[JobBoardForm, Form()], _: Annotated[str, Depends(authenticate_user)]):
    logo_contents = await job_board_form.logo.read()
    file_url = upload_file("company-logos", job_board_form.logo.filename, logo_contents, job_board_form.logo.content_type)
    with get_db_session() as session:
@@ -75,7 +76,7 @@ async def api_get_company_job_board(job_board_id):
      return jobBoard
 
 @app.delete("/api/job-boards/{job_board_id}")
-async def api_get_company_job_board(job_board_id):
+async def api_get_company_job_board(job_board_id, _: Annotated[str, Depends(authenticate_user)]):
   with get_db_session() as session:
      jobBoard = session.get(JobBoard, job_board_id)
      if not jobBoard:
@@ -89,7 +90,7 @@ class JobBoardEditForm(BaseModel):
    logo: Optional[UploadFile] = None
 
 @app.put("/api/job-boards/{job_board_id}")
-async def api_get_company_job_board(job_board_id, job_board_edit_form: Annotated[JobBoardEditForm, Form()]):
+async def api_get_company_job_board(job_board_id, job_board_edit_form: Annotated[JobBoardEditForm, Form()], _: Annotated[str, Depends(authenticate_user)]):
   with get_db_session() as session:
      jobBoard = session.get(JobBoard, job_board_id)
      if not jobBoard:
