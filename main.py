@@ -122,6 +122,25 @@ async def api_close_job_post(job_post_id):
      session.add(jobPost)
      session.commit()
      return jobPost
+  
+class JobPostForm(BaseModel):
+   title : str
+   description: str
+   job_board_id : int
+
+@app.post("/api/job-posts")
+async def api_create_job_post(job_post_form: Annotated[JobPostForm, Form()]):
+  with get_db_session() as session:
+     jobBoard = session.get(JobBoard, job_post_form.job_board_id)
+     if not jobBoard:
+        raise HTTPException(status_code=400)
+     jobPost = JobPost(title=job_post_form.title, 
+                       description=job_post_form.description, 
+                       job_board_id = job_post_form.job_board_id)
+     session.add(jobPost)
+     session.commit()
+     session.refresh(jobPost)
+     return jobPost
 
 @app.get("/api/job-boards/{slug}")
 async def api_company_job_board(slug):
