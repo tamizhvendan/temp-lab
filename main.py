@@ -10,7 +10,7 @@ from auth import AdminAuthzMiddleware, AdminSessionMiddleware, authenticate_admi
 from converter import extract_text_from_pdf_bytes
 from db import get_db, get_db_session
 from emailer import send_email
-from file_storage import upload_file
+import file_storage
 from models import JobApplication, JobApplicationAIEvaluation, JobBoard, JobPost
 from config import settings
 
@@ -53,7 +53,7 @@ class JobBoardForm(BaseModel):
 @app.post("/api/job-boards")
 async def api_create_new_job_board(job_board_form: Annotated[JobBoardForm, Form()], db: Session = Depends(get_db)):
    logo_contents = await job_board_form.logo.read()
-   file_url = upload_file("company-logos", job_board_form.logo.filename, logo_contents, job_board_form.logo.content_type)
+   file_url = file_storage.upload_file("company-logos", job_board_form.logo.filename, logo_contents, job_board_form.logo.content_type)
    new_job_board = JobBoard(slug=job_board_form.slug, logo_url=file_url)
    db.add(new_job_board)
    db.commit()
@@ -100,7 +100,7 @@ async def api_get_company_job_board(job_board_id, job_board_edit_form: Annotated
      jobBoard.slug = job_board_edit_form.slug
      if job_board_edit_form.logo is not None and job_board_edit_form.logo.filename != '':
         logo_contents = await job_board_edit_form.logo.read()
-        file_url = upload_file("company-logos", job_board_edit_form.logo.filename, logo_contents, job_board_edit_form.logo.content_type)
+        file_url = file_storage.upload_file("company-logos", job_board_edit_form.logo.filename, logo_contents, job_board_edit_form.logo.content_type)
         jobBoard.logo_url = file_url
      session.add(jobBoard)
      session.commit()
@@ -172,7 +172,7 @@ async def api_create_new_job_application(job_application_form: Annotated[JobAppl
       if not jobPost or not jobPost.is_open:
          raise HTTPException(status_code=400)
       resume_content = await job_application_form.resume.read()
-      file_url = upload_file("resumes", job_application_form.resume.filename, resume_content, job_application_form.resume.content_type)
+      file_url = file_storage.upload_file("resumes", job_application_form.resume.filename, resume_content, job_application_form.resume.content_type)
       new_job_application = JobApplication(
          first_name=job_application_form.first_name, 
          last_name=job_application_form.last_name, 

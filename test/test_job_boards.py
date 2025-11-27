@@ -19,17 +19,16 @@ def test_create_job_board(client, monkeypatch):
     login_response = client.post("/api/admin-login", data=login_data)
     assert login_response.status_code == 200
 
-    mock_return_value = "test/logo.txt"
-    def mock_fetch_external_data(bucket_name, path, contents, content_type):
-        return mock_return_value
-    monkeypatch.setattr(file_storage, "upload_file", mock_fetch_external_data)
+    def mock_upload_file(bucket_name, path, contents, content_type):
+        return "test/logo.png"
+    monkeypatch.setattr(file_storage, "upload_file", mock_upload_file)
 
     files_payload = {
-          "logo": ("logo.txt", b"some file", "text/plain")
+          "logo": ("logo.png", b"some file")
     }
     response = client.post("/api/job-boards", files=files_payload, data={"slug": "acme"})
     assert response.status_code == 200
     new_job_board = response.json()
     assert  new_job_board['slug'] == "acme"
-    assert  new_job_board['logo_url'] == "/uploads/company-logos/logo.txt"
+    assert  new_job_board['logo_url'] == "test/logo.png"
 
