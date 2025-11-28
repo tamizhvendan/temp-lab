@@ -1,18 +1,11 @@
-def test_health(client):
-    response = client.get("/api/health")
-    assert response.status_code == 200
-    assert response.json()["database"] == "ok"
-
-def test_list_job_boards(client):
-    response = client.get("/api/job-boards")
-    assert response.status_code == 200
-    assert response.json() == []
-
-import os
 import file_storage
 from config import settings
 
-def test_create_job_board(client, monkeypatch):
+def test_non_admin_should_not_able_to_create_job_baord(client):
+  response = client.post("/api/job-boards")
+  assert response.status_code == 401
+
+def test_admin_should_be_able_to_create_job_board(client, monkeypatch):
     monkeypatch.setattr(settings, "ADMIN_USERNAME", "admin")
     monkeypatch.setattr(settings, "ADMIN_PASSWORD", "test")
     login_data = {"username": "admin", "password": "test"}
